@@ -1,0 +1,352 @@
+{
+    "patients": [
+      {
+        "patient_id": "7435e06a-3485-467a-ba93-d37cf65c6d56",
+        "name": "patient",
+        "age": 35,
+        "gender": "Not specified",
+        "medical_history": [],
+        "allergies": [
+          "Dust"
+        ],
+        "current_medications": [],
+        "lifestyle_factors": {
+          "smoking_status": null,
+          "alcohol_consumption": null,
+          "exercise_frequency": null,
+          "stress_level": null
+        }
+      }
+    ],
+    "assessments": [
+      {
+        "assessment_id": "7e3ac471-5480-4836-a654-724498dfdb3b",
+        "patient_id": "7435e06a-3485-467a-ba93-d37cf65c6d56",
+        "assessment_date": "2025-04-05T01:59:43.781998",
+        "symptoms": [
+          {
+            "name": "fever",
+            "severity": null,
+            "duration_days": 7,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T01:59:45.775703"
+          },
+          {
+            "name": "cough",
+            "severity": null,
+            "duration_days": 7,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T01:59:45.775714"
+          },
+          {
+            "name": "headache",
+            "severity": null,
+            "duration_days": 7,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T01:59:45.775718"
+          }
+        ],
+        "priority_score": 60,
+        "priority_level": "urgent",
+        "recommendation": "Schedule appointment within 24-48 hours",
+        "condition_predictions": []
+      },
+      {
+        "assessment_id": "8c1c7742-f4cb-4233-906c-77b054d0c7e7",
+        "patient_id": "7435e06a-3485-467a-ba93-d37cf65c6d56",
+        "assessment_date": "2025-04-05T02:13:11.799937",
+        "symptoms": [
+          {
+            "name": "fever",
+            "severity": 5,
+            "duration_days": 3,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T02:13:14.323672"
+          },
+          {
+            "name": "cough",
+            "severity": 5,
+            "duration_days": 3,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T02:13:14.323680"
+          },
+          {
+            "name": "headache",
+            "severity": 5,
+            "duration_days": 3,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T02:13:14.323684"
+          }
+        ],
+        "priority_score": 60,
+        "priority_level": "urgent",
+        "recommendation": "Schedule appointment within 24-48 hours",
+        "condition_predictions": []
+      },
+      {
+        "assessment_id": "ff1fc335-92b8-40f1-ac8b-7aa45740c4be",
+        "patient_id": "7435e06a-3485-467a-ba93-d37cf65c6d56",
+        "assessment_date": "2025-04-05T02:41:41.032508",
+        "symptoms": [
+          {
+            "name": "fever",
+            "severity": 5,
+            "duration_days": 5,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T02:41:43.153468"
+          },
+          {
+            "name": "cough",
+            "severity": 5,
+            "duration_days": 5,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T02:41:43.153473"
+          },
+          {
+            "name": "headache",
+            "severity": 5,
+            "duration_days": 5,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T02:41:43.153475"
+          }
+        ],
+        "priority_score": 80,
+        "priority_level": "critical",
+        "recommendation": "Immediate medical attention recommended",
+        "condition_predictions": []
+      },
+      {
+        "assessment_id": "fb16ed6d-96d1-4c3f-86ae-81a6fd9b8eef",
+        "patient_id": "7435e06a-3485-467a-ba93-d37cf65c6d56",
+        "assessment_date": "2025-04-05T02:54:26.043123",
+        "symptoms": [
+          {
+            "name": "cough",
+            "severity": 5,
+            "duration_days": 5,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T02:54:29.127296"
+          },
+          {
+            "name": "dull ache in genital area",
+            "severity": 5,
+            "duration_days": 5,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T02:54:29.127298"
+          },
+          {
+            "name": "swelling in genital area",
+            "severity": 5,
+            "duration_days": 5,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T02:54:29.127299"
+          }
+        ],
+        "priority_score": 80,
+        "priority_level": "critical",
+        "recommendation": "Immediate medical attention recommended",
+        "condition_predictions": []
+      },
+      {
+        "assessment_id": "d9b5629d-a82a-403b-8a2e-a0bfbfc202f8",
+        "patient_id": "7435e06a-3485-467a-ba93-d37cf65c6d56",
+        "assessment_date": "2025-04-05T16:44:55.564845",
+        "symptoms": [
+          {
+            "name": "fever",
+            "severity": 7,
+            "duration_days": 3,
+            "description": "Frequency: constant. Triggers: exposure to light",
+            "timestamp": "2025-04-05T16:44:59.673294"
+          },
+          {
+            "name": "headache",
+            "severity": 7,
+            "duration_days": 3,
+            "description": "Frequency: constant. Triggers: exposure to light",
+            "timestamp": "2025-04-05T16:44:59.673316"
+          },
+          {
+            "name": "nausea",
+            "severity": 8,
+            "duration_days": 3,
+            "description": "Frequency: constant",
+            "timestamp": "2025-04-05T16:44:59.673327"
+          },
+          {
+            "name": "dizziness",
+            "severity": 8,
+            "duration_days": 3,
+            "description": "Frequency: constant",
+            "timestamp": "2025-04-05T16:44:59.673334"
+          },
+          {
+            "name": "sensitivity to sounds",
+            "severity": 8,
+            "duration_days": 3,
+            "description": "Frequency: constant",
+            "timestamp": "2025-04-05T16:44:59.673340"
+          }
+        ],
+        "priority_score": 80,
+        "priority_level": "critical",
+        "recommendation": "Immediate medical attention recommended",
+        "condition_predictions": [
+          {
+            "condition": "Migraine",
+            "probability_range": "High",
+            "key_matching_symptoms": [
+              "headache",
+              "nausea",
+              "dizziness",
+              "sensitivity to sounds"
+            ],
+            "recommended_tests": []
+          },
+          {
+            "condition": "Viral infection",
+            "probability_range": "Medium",
+            "key_matching_symptoms": [
+              "fever",
+              "headache",
+              "nausea"
+            ],
+            "recommended_tests": [
+              "Viral panel test"
+            ]
+          },
+          {
+            "condition": "Labyrinthitis",
+            "probability_range": "Low",
+            "key_matching_symptoms": [
+              "dizziness",
+              "nausea"
+            ],
+            "recommended_tests": [
+              "Hearing test",
+              "Vestibular function tests"
+            ]
+          }
+        ]
+      },
+      {
+        "assessment_id": "48036a76-ce83-41d4-a16c-36ad10c92450",
+        "patient_id": "7435e06a-3485-467a-ba93-d37cf65c6d56",
+        "assessment_date": "2025-04-05T21:16:00.867510",
+        "symptoms": [
+          {
+            "name": "chest pain",
+            "severity": 7,
+            "duration_days": 14,
+            "description": "Frequency: 4 times a week. Triggers: high fat food",
+            "timestamp": "2025-04-05T21:16:03.461370"
+          },
+          {
+            "name": "sweating",
+            "severity": 8,
+            "duration_days": 21,
+            "description": "Frequency: not specified. Triggers: not specified",
+            "timestamp": "2025-04-05T21:16:03.461391"
+          }
+        ],
+        "priority_score": 80,
+        "priority_level": "critical",
+        "recommendation": "Immediate medical attention recommended",
+        "condition_predictions": [
+          {
+            "condition": "Heart attack (Myocardial Infarction)",
+            "probability_range": "High",
+            "key_matching_symptoms": [
+              "chest pain",
+              "sweating"
+            ],
+            "recommended_tests": [
+              "ECG",
+              "Cardiac enzymes blood test"
+            ]
+          },
+          {
+            "condition": "Panic attack",
+            "probability_range": "Medium",
+            "key_matching_symptoms": [
+              "chest pain",
+              "sweating"
+            ],
+            "recommended_tests": [
+              "Physical examination",
+              "Psychological evaluation"
+            ]
+          }
+        ]
+      },
+      {
+        "assessment_id": "07956807-0aa8-4367-b6a7-5764376bc60e",
+        "patient_id": "7435e06a-3485-467a-ba93-d37cf65c6d56",
+        "assessment_date": "2025-04-05T22:18:36.150718",
+        "symptoms": [
+          {
+            "name": "Shortness of breath",
+            "severity": 10,
+            "duration_days": 60,
+            "description": "Frequency: Waking up and sometimes during sleep. Triggers: Not specified",
+            "timestamp": "2025-04-05T22:18:39.135790"
+          },
+          {
+            "name": "Fatigue",
+            "severity": 10,
+            "duration_days": 60,
+            "description": "Frequency: Waking up and sometimes during sleep. Triggers: Not specified",
+            "timestamp": "2025-04-05T22:18:39.135799"
+          },
+          {
+            "name": "Cough",
+            "severity": 5,
+            "duration_days": 7,
+            "description": "Reported during conversation",
+            "timestamp": "2025-04-05T22:18:39.135802"
+          }
+        ],
+        "priority_score": 80,
+        "priority_level": "critical",
+        "recommendation": "Immediate medical attention recommended",
+        "condition_predictions": [
+          {
+            "condition": "Asthma",
+            "probability_range": "Medium",
+            "key_matching_symptoms": [
+              "Shortness of breath",
+              "Cough"
+            ],
+            "recommended_tests": [
+              "Pulmonary function tests",
+              "Allergy testing"
+            ]
+          },
+          {
+            "condition": "Pneumonia",
+            "probability_range": "Medium",
+            "key_matching_symptoms": [
+              "Shortness of breath",
+              "Cough"
+            ],
+            "recommended_tests": [
+              "Chest X-ray",
+              "Blood tests"
+            ]
+          },
+          {
+            "condition": "Chronic obstructive pulmonary disease (COPD)",
+            "probability_range": "Low",
+            "key_matching_symptoms": [
+              "Shortness of breath",
+              "Fatigue"
+            ],
+            "recommended_tests": [
+              "Pulmonary function tests",
+              "CT scan of the chest"
+            ]
+          }
+        ]
+      }
+    ]
+  }

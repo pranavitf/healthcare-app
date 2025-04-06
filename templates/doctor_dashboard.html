@@ -1,0 +1,454 @@
+<!-- templates/doctor_dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard | Healthcare Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 2rem;
+        }
+        .navbar {
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .priority-critical {
+            background-color: #dc3545 !important;
+            color: white;
+        }
+        .priority-urgent {
+            background-color: #fd7e14 !important;
+            color: white;
+        }
+        .priority-standard {
+            background-color: #ffc107 !important;
+        }
+        .priority-routine {
+            background-color: #20c997 !important;
+            color: white;
+        }
+        .dashboard-header {
+            margin-bottom: 1.5rem;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+            margin-bottom: 1.5rem;
+        }
+        .patient-name {
+            font-weight: 600;
+        }
+        .badge {
+            font-weight: 500;
+            padding: 0.5em 0.75em;
+        }
+        .list-group-item {
+            padding: 0.75rem 1.25rem;
+        }
+        .symptom-severity-high {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .symptom-severity-medium {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+        .symptom-severity-low {
+            color: #20c997;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="bi bi-hospital-fill me-2"></i>Doctor Dashboard</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="row dashboard-header">
+            <div class="col-md-6">
+                <h2><i class="bi bi-clipboard2-pulse me-2"></i>Patient Assessments</h2>
+            </div>
+            <div class="col-md-6 text-end">
+                <span class="badge priority-critical me-2">Critical</span>
+                <span class="badge priority-urgent me-2">Urgent</span>
+                <span class="badge priority-standard me-2">Standard</span>
+                <span class="badge priority-routine">Routine</span>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-list-ul me-2"></i>Patient Queue</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush" id="patient-queue">
+                            <li class="list-group-item text-center text-muted">Loading patients...</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-calendar-check me-2"></i>Scheduled Follow-ups</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush" id="followup-list">
+                            <li class="list-group-item text-center text-muted">No scheduled follow-ups</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-file-medical me-2"></i>Patient Assessment</h5>
+                    </div>
+                    <div class="card-body" id="assessment-details">
+                        <div class="text-center text-muted">
+                            <p><i class="bi bi-arrow-left-circle fs-3 mb-3"></i></p>
+                            <p>Select a patient from the queue to view their assessment</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load patient queue
+            loadPatientQueue();
+            
+            // Load follow-ups
+            loadFollowups();
+            
+            // Set up refresh interval (every 30 seconds)
+            setInterval(loadPatientQueue, 30000);
+        });
+        
+        function loadPatientQueue() {
+            fetch('/api/doctor/queue')
+                .then(response => response.json())
+                .then(data => {
+                    const queueList = document.getElementById('patient-queue');
+                    
+                    if (data.length === 0) {
+                        queueList.innerHTML = '<li class="list-group-item text-center text-muted">No patients in queue</li>';
+                        return;
+                    }
+                    
+                    queueList.innerHTML = '';
+                    
+                    data.forEach(patient => {
+                        const li = document.createElement('li');
+                        li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                        li.classList.add('priority-' + patient.priority_level);
+                        
+                        li.innerHTML = `
+                            <div>
+                                <span class="patient-name">${patient.patient_name}</span>
+                                <br>
+                                <small>Priority: ${capitalizePriority(patient.priority_level)} (${patient.priority_score}/100)</small>
+                            </div>
+                            <button class="btn btn-sm btn-primary view-patient" data-id="${patient.assessment_id}">
+                                <i class="bi bi-eye"></i> View
+                            </button>
+                        `;
+                        
+                        queueList.appendChild(li);
+                    });
+                    
+                    // Add event listeners to view buttons
+                    document.querySelectorAll('.view-patient').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const assessmentId = this.getAttribute('data-id');
+                            loadAssessmentDetails(assessmentId);
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading patient queue:', error);
+                });
+        }
+        
+        function loadFollowups() {
+            fetch('/api/doctor/followups')
+                .then(response => response.json())
+                .then(data => {
+                    const followupList = document.getElementById('followup-list');
+                    
+                    if (data.length === 0) {
+                        followupList.innerHTML = '<li class="list-group-item text-center text-muted">No scheduled follow-ups</li>';
+                        return;
+                    }
+                    
+                    followupList.innerHTML = '';
+                    
+                    data.forEach(followup => {
+                        const li = document.createElement('li');
+                        li.classList.add('list-group-item');
+                        li.innerHTML = `
+                            <div>
+                                <strong>${followup.patient_name}</strong>
+                                <br>
+                                <small>Date: ${new Date(followup.followup_date).toLocaleDateString()}</small>
+                            </div>
+                        `;
+                        
+                        followupList.appendChild(li);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading followups:', error);
+                });
+        }
+        
+        function loadAssessmentDetails(assessmentId) {
+            fetch(`/api/doctor/assessment/${assessmentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const detailsContainer = document.getElementById('assessment-details');
+                    
+                    // Format date
+                    const assessmentDate = new Date(data.assessment_date).toLocaleString();
+                    
+                    // Prepare symptoms list
+                    let symptomsHtml = '<ul class="list-group mb-3">';
+                    data.symptoms.forEach(symptom => {
+                        // Determine severity class
+                        let severityClass = '';
+                        if (symptom.severity >= 8) {
+                            severityClass = 'symptom-severity-high';
+                        } else if (symptom.severity >= 5) {
+                            severityClass = 'symptom-severity-medium';
+                        } else {
+                            severityClass = 'symptom-severity-low';
+                        }
+                        
+                        symptomsHtml += `
+                            <li class="list-group-item">
+                                <strong class="${severityClass}">${symptom.name}</strong>: 
+                                Severity <span class="${severityClass}">${symptom.severity}/10</span>, 
+                                Duration: ${symptom.duration_days} days
+                                <br>
+                                <small>${symptom.description}</small>
+                            </li>
+                        `;
+                    });
+                    symptomsHtml += '</ul>';
+                    
+                    // Patient info
+                    let patientInfo = '';
+                    if (data.patient) {
+                        patientInfo = `
+                            <div class="card mb-3">
+                                <div class="card-header">Complete Patient Information</div>
+                                <div class="card-body">
+                                    <h5>Demographics</h5>
+                                    <p><strong>Name:</strong> ${data.patient.name}</p>
+                                    <p><strong>Age:</strong> ${data.patient.age || 'Not specified'}</p>
+                                    <p><strong>Gender:</strong> ${data.patient.gender || 'Not specified'}</p>
+                                    
+                                    <h5>Medical History</h5>
+                                    <p><strong>Chronic Conditions:</strong> ${data.patient.chronic_conditions ? data.patient.chronic_conditions.join(', ') : 'None reported'}</p>
+                                    <p><strong>Medical History:</strong> ${data.patient.medical_history ? data.patient.medical_history.join(', ') : 'None reported'}</p>
+                                    <p><strong>Allergies:</strong> ${data.patient.allergies ? data.patient.allergies.join(', ') : 'None reported'}</p>
+                                    <p><strong>Current Medications:</strong> ${data.patient.current_medications ? data.patient.current_medications.join(', ') : 'None reported'}</p>
+                                    
+                                    <h5>Lifestyle Factors</h5>
+                                    <ul>
+                                        <li><strong>Smoking:</strong> ${data.patient.lifestyle_factors?.smoking_status || 'Not specified'}</li>
+                                        <li><strong>Alcohol:</strong> ${data.patient.lifestyle_factors?.alcohol_consumption || 'Not specified'}</li>
+                                        <li><strong>Exercise:</strong> ${data.patient.lifestyle_factors?.exercise_frequency || 'Not specified'}</li>
+                                        <li><strong>Diet:</strong> ${data.patient.lifestyle_factors?.diet || 'Not specified'}</li>
+                                        <li><strong>Stress Level:</strong> ${data.patient.lifestyle_factors?.stress_level || 'Not specified'}</li>
+                                        <li><strong>Sleep Patterns:</strong> ${data.patient.lifestyle_factors?.sleep_patterns || 'Not specified'}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Priority class
+                    const priorityClass = `priority-${data.priority_level}`;
+                    
+                    // Main assessment content
+                    detailsContainer.innerHTML = `
+                        <div class="d-flex justify-content-between mb-4">
+                            <h4><i class="bi bi-person-circle me-2"></i>${data.patient ? data.patient.name : 'Patient'} Assessment</h4>
+                            <span class="badge ${priorityClass} p-2">${capitalizePriority(data.priority_level)}</span>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <p><strong><i class="bi bi-info-circle me-2"></i>Priority Score:</strong> ${data.priority_score}/100</p>
+                            <p><strong><i class="bi bi-clipboard-check me-2"></i>Recommendation:</strong> ${data.recommendation}</p>
+                            <p><strong><i class="bi bi-calendar3 me-2"></i>Assessment Date:</strong> ${assessmentDate}</p>
+                        </div>
+                        
+                        ${patientInfo}
+                        
+                        <h5><i class="bi bi-activity me-2"></i>Reported Symptoms</h5>
+                        ${symptomsHtml}
+                        
+                        <div class="card mb-3">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="card-title mb-0"><i class="bi bi-lightbulb me-2"></i>Possible Conditions (For Reference Only)</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-warning">
+                                    <strong><i class="bi bi-exclamation-triangle me-2"></i>IMPORTANT DISCLAIMER:</strong> These suggestions are based on reported symptoms only and are not diagnostic. Clinical judgment and proper diagnostic procedures are required.
+                                </div>
+                                
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Possible Condition</th>
+                                            <th>Confidence Level</th>
+                                            <th>Key Matching Symptoms</th>
+                                            <th>Suggested Assessments</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="conditions-table">
+                                        <!-- Conditions will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <form id="process-form">
+                            <input type="hidden" name="assessment_id" value="${data.assessment_id}">
+                            
+                            <div class="mb-3">
+                                <label for="doctor-notes" class="form-label"><i class="bi bi-pencil me-2"></i>Doctor Notes</label>
+                                <textarea class="form-control" id="doctor-notes" name="notes" rows="3" placeholder="Add your clinical notes here..."></textarea>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="schedule-appointment" name="schedule_appointment">
+                                <label class="form-check-label" for="schedule-appointment"><i class="bi bi-calendar-plus me-2"></i>Schedule Appointment</label>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i>Process Assessment
+                            </button>
+                        </form>
+                    `;
+                    
+                    // Populate condition predictions
+                    populateConditionsPredictions(data);
+                    
+                    // Add event listener to form
+                    document.getElementById('process-form').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        
+                        const formData = {
+                            assessment_id: this.elements['assessment_id'].value,
+                            notes: this.elements['notes'].value,
+                            schedule_appointment: this.elements['schedule_appointment'].checked
+                        };
+                        
+                        processAssessment(formData);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading assessment details:', error);
+                });
+        }
+        
+        function populateConditionsPredictions(details) {
+            const conditionsTable = document.getElementById('conditions-table');
+            conditionsTable.innerHTML = '';
+            
+            // Check if predictions exist
+            if (!details.condition_predictions || details.condition_predictions.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="4" class="text-center">No condition predictions available</td>
+                `;
+                conditionsTable.appendChild(row);
+                return;
+            }
+            
+            // Add each prediction to the table
+            details.condition_predictions.forEach(prediction => {
+                const row = document.createElement('tr');
+                
+                // Determine confidence badge color
+                let badgeClass = 'bg-info';
+                if (prediction.probability_range === 'Very High') {
+                    badgeClass = 'bg-danger';
+                } else if (prediction.probability_range === 'High') {
+                    badgeClass = 'bg-warning text-dark';
+                } else if (prediction.probability_range === 'Medium') {
+                    badgeClass = 'bg-primary';
+                } else if (prediction.probability_range === 'Low') {
+                    badgeClass = 'bg-secondary';
+                }
+                
+                row.innerHTML = `
+                    <td>${prediction.condition}</td>
+                    <td><span class="badge ${badgeClass}">${prediction.probability_range}</span></td>
+                    <td>${Array.isArray(prediction.key_matching_symptoms) ? prediction.key_matching_symptoms.join(', ') : 'None specified'}</td>
+                    <td>${Array.isArray(prediction.recommended_tests) ? prediction.recommended_tests.join(', ') : 'None specified'}</td>
+                `;
+                
+                conditionsTable.appendChild(row);
+            });
+        }
+        
+        function processAssessment(formData) {
+            fetch('/api/doctor/process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Clear assessment details
+                    document.getElementById('assessment-details').innerHTML = `
+                        <div class="alert alert-success">
+                            <p><i class="bi bi-check-circle me-2"></i>Assessment processed successfully.</p>
+                        </div>
+                        <div class="text-center text-muted">
+                            <p><i class="bi bi-arrow-left-circle fs-3 mb-3"></i></p>
+                            <p>Select another patient from the queue to view their assessment</p>
+                        </div>
+                    `;
+                    
+                    // Reload patient queue
+                    loadPatientQueue();
+                } else {
+                    alert('Error processing assessment: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error processing assessment:', error);
+                alert('Error processing assessment. Please try again.');
+            });
+        }
+        
+        function capitalizePriority(priority) {
+            return priority.charAt(0).toUpperCase() + priority.slice(1);
+        }
+    </script>
+</body>
+</html>

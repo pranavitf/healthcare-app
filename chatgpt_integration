@@ -1,0 +1,600 @@
+# chatgpt_integration.py
+# This module handles the integration with OpenAI's ChatGPT API for the healthcare assistant
+
+import os
+import json
+import requests
+from typing import List, Dict, Any
+
+class ChatGPTManager:
+    """
+    Manages interactions with the OpenAI ChatGPT API for medical conversations
+    """
+    
+    def __init__(self, api_key: str, org_id: str = None):
+        """
+        Initialize the ChatGPT manager with API credentials
+        
+        Args:
+            api_key: OpenAI API key
+            org_id: Optional OpenAI organization ID
+        """
+        self.api_key = api_key
+        self.org_id = org_id
+        self.api_url = "https://api.openai.com/v1/chat/completions"
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        
+        if org_id:
+            self.headers["OpenAI-Organization"] = org_id
+            
+        # System message to instruct ChatGPT to behave as a healthcare professional
+        self.system_message = """
+        You are an experienced healthcare professional conducting an initial patient assessment. 
+        Your goal is to gather ALL relevant information about the patient methodically and thoroughly.
+
+        REQUIRED information to collect (do not conclude the conversation until these are obtained):
+        1. Primary symptoms with detailed characteristics (severity 1-10, duration, frequency, triggers)
+        2. Associated symptoms
+        3. Medical history including ALL chronic conditions
+        4. ALL current medications with dosages if possible
+        5. ALL allergies (medications, food, environmental)
+        6. Family history of significant medical conditions
+        7. Basic lifestyle factors (smoking, alcohol, exercise, diet)
+
+        Guidelines:
+        1. Ask ONE question at a time to keep the conversation focused
+        2. If the patient gives incomplete information, ask a follow-up question
+        3. Do not move to a new topic until you have thoroughly explored the current one
+        4. Be professional yet compassionate 
+        5. Do not diagnose but gather comprehensive information
+        6. Track what information you've collected and what's still missing
+        7. When the patient mentions a symptom, ask about its severity (1-10 scale), duration, and frequency
+        8. When the patient mentions a medication, ask about the dosage and how long they've been taking it
+
+        If the patient tries to end the conversation before all essential information is collected, politely explain that you need a few more details to provide a complete assessment.
+
+        Only conclude the conversation when you have collected ALL the essential information listed above.
+        """
+        
+        # Conversation memory
+        self.conversation_history = [
+            {"role": "system", "content": self.system_message}
+        ]
+    
+    def process_message(self, user_message: str) -> str:
+        """
+        Process a user message through the ChatGPT API and get a response
+        
+        Args:
+            user_message: The patient's message text
+            
+        Returns:
+            The AI's response text
+        """
+        # Add user message to conversation history
+        self.conversation_history.append({"role": "user", "content": user_message})
+        
+        # Prepare the API request
+        data = {
+            "model": "gpt-4-turbo",  # You can change to a different model as needed
+            "messages": self.conversation_history,
+            "temperature": 0.7,
+            "max_tokens": 300
+        }
+        
+        try:
+            # Make the API request
+            response = requests.post(
+                self.api_url,
+                headers=self.headers,
+                json=data
+            )
+            
+            # Check for successful response
+            response.raise_for_status()
+            result = response.json()
+            
+            # Extract the assistant's message
+            assistant_message = result["choices"][0]["message"]["content"]
+            
+            # Add assistant message to conversation history
+            self.conversation_history.append({"role": "assistant", "content": assistant_message})
+            
+            return assistant_message
+            
+        except requests.RequestException as e:
+            print(f"Error calling ChatGPT API: {e}")
+            return "I'm having trouble connecting to my knowledge base right now. Could we try again in a moment?"
+    
+    def extract_medical_data(self) -> Dict[str, Any]:
+        """
+        Extract structured medical data from the conversation
+        
+        Returns:
+            Dictionary containing extracted medical information
+        """
+        # Create a more detailed prompt to extract structured data
+        extraction_prompt = (
+            "Based on our conversation with the patient, please extract ALL of the following information in JSON format:\n"
+            "{\n"
+            '  "patient_demographics": {\n'
+            '    "age": (numerical age if mentioned, otherwise null),\n'
+            '    "gender": (gender if mentioned, otherwise null)\n'
+            '  },\n'
+            '  "primary_symptoms": [detailed list of ALL symptoms mentioned],\n'
+            '  "symptom_details": [\n'
+            '    {\n'
+            '      "name": "symptom name",\n'
+            '      "severity": (numerical rating 1-10),\n'
+            '      "duration": "exact duration as mentioned",\n'
+            '      "frequency": "how often it occurs",\n'
+            '      "triggers": "what makes it worse"\n'
+            '    }\n'
+            '  ],\n'
+            '  "medical_history": [ALL medical conditions mentioned],\n'
+            '  "chronic_conditions": [ALL chronic illnesses mentioned],\n'
+            '  "medications": [\n'
+            '    {\n'
+            '      "name": "medication name",\n'
+            '      "dosage": "dosage if mentioned",\n'
+            '      "frequency": "how often taken"\n'
+            '    }\n'
+            '  ],\n'
+            '  "allergies": [ALL allergies mentioned],\n'
+            '  "family_history": [relevant family medical history],\n'
+            '  "lifestyle_factors": {\n'
+            '    "smoking": "smoking status",\n'
+            '    "alcohol": "alcohol consumption",\n'
+            '    "exercise": "exercise habits",\n'
+            '    "diet": "dietary information",\n'
+            '    "stress": "stress levels",\n'
+            '    "sleep": "sleep patterns"\n'
+            '  },\n'
+            '  "urgency_assessment": "low/medium/high based on ALL factors"\n'
+            "}\n\n"
+            "Be extremely thorough. Extract EVERY piece of information the patient has shared. If information wasn't provided, use null."
+        )
+        # Create a copy of conversation history
+        temp_history = self.conversation_history.copy()
+        temp_history.append({"role": "user", "content": extraction_prompt})
+        
+        # Prepare the API request
+        data = {
+            "model": "gpt-3.5-turbo",
+            "messages": temp_history,
+            "temperature": 0.3,
+            "max_tokens": 500
+        }
+        
+        try:
+            # Make the API request
+            response = requests.post(
+                self.api_url,
+                headers=self.headers,
+                json=data
+            )
+            
+            # Check for successful response
+            response.raise_for_status()
+            result = response.json()
+            
+            # Extract the response text
+            extraction_result = result["choices"][0]["message"]["content"]
+            
+            # Parse JSON from response (handling potential formatting issues)
+            try:
+                # Find JSON content between ```json and ``` if present
+                if "```json" in extraction_result:
+                    json_content = extraction_result.split("```json")[1].split("```")[0].strip()
+                    medical_data = json.loads(json_content)
+                elif "```" in extraction_result:
+                    json_content = extraction_result.split("```")[1].split("```")[0].strip()
+                    medical_data = json.loads(json_content)
+                else:
+                    # Otherwise try to parse the whole thing as JSON
+                    medical_data = json.loads(extraction_result)
+                    
+                return medical_data
+                
+            except json.JSONDecodeError:
+                # If JSON parsing fails, return a basic structure with the raw text
+                return {
+                    "raw_extraction": extraction_result,
+                    "extraction_failed": True
+                }
+                
+        except requests.RequestException as e:
+            print(f"Error extracting medical data: {e}")
+            return {"extraction_failed": True, "error": str(e)}
+        
+    def calculate_priority_score(self, medical_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Calculate a priority score based on the extracted medical data
+        
+        Args:
+            medical_data: Dictionary of extracted medical information
+            
+        Returns:
+            Dictionary with priority score and level
+        """
+        # Handle case where extraction failed
+        if medical_data.get("extraction_failed", False):
+            return {"priority_score": 50, "priority_level": "standard"}
+        
+        # Get urgency assessment
+        urgency = medical_data.get("urgency_assessment", "medium").lower()
+        
+        # Basic mapping of urgency to score
+        if urgency == "high":
+            score = 80
+            level = "critical"
+        elif urgency == "medium":
+            score = 60
+            level = "urgent"
+        elif urgency == "low":
+            score = 30
+            level = "standard"
+        else:
+            score = 40
+            level = "standard"
+        
+        # Additional factor: symptom severity if available (1-10 scale)
+        severity = medical_data.get("symptom_severity")
+        if severity is not None:
+            try:
+                # Convert to int if it's a string
+                if isinstance(severity, str) and severity.isdigit():
+                    severity = int(severity)
+                    
+                if isinstance(severity, (int, float)) and 1 <= severity <= 10:
+                    # Adjust score by severity (up to +/-10 points)
+                    severity_factor = (severity - 5) * 2
+                    score += severity_factor
+            except (ValueError, TypeError):
+                pass
+        
+        # Ensure score is within 0-100 range
+        score = max(0, min(100, score))
+        
+        # Determine level based on final score
+        if score >= 80:
+            level = "critical"
+        elif score >= 60:
+            level = "urgent"
+        elif score >= 40:
+            level = "standard"
+        else:
+            level = "routine"
+            
+        return {
+            "priority_score": score,
+            "priority_level": level
+        }
+    
+    def reset_conversation(self):
+        """Reset the conversation history, keeping only the system message"""
+        self.conversation_history = [
+            {"role": "system", "content": self.system_message}
+        ]
+
+# Helper function to integrate with the healthcare assistant
+    # Add this to your chatgpt_integration.py file
+
+    def predict_possible_conditions(self, patient_data):
+        """
+        Use ChatGPT to predict possible medical conditions based on
+        reported symptoms and patient data
+        
+        Args:
+            patient_data: Dictionary containing symptoms and patient information
+            
+        Returns:
+            List of dictionaries with condition predictions and probabilities
+        """
+        # Extract symptoms from patient data
+        symptoms = []
+        if 'symptoms' in patient_data and isinstance(patient_data['symptoms'], list):
+            symptoms = [s['name'] for s in patient_data['symptoms'] if 'name' in s]
+        
+        # Extract patient profile information
+        profile = {
+            'age': patient_data.get('age', 'unknown'),
+            'gender': patient_data.get('gender', 'unknown'),
+            'medical_history': patient_data.get('medical_history', []),
+            'medications': patient_data.get('current_medications', [])
+        }
+        
+        if not symptoms:
+            return [{"condition": "Unable to predict", "probability_range": "N/A", 
+                    "key_matching_symptoms": [], "recommended_tests": []}]
+        
+        # Create prediction prompt for ChatGPT
+        prediction_prompt = (
+            f"Based ONLY on these symptoms: {', '.join(symptoms)}\n"
+            f"And this patient profile:\n"
+            f"- Age: {profile.get('age', 'unknown')}\n"
+            f"- Gender: {profile.get('gender', 'unknown')}\n"
+            f"- Medical history: {', '.join(profile.get('medical_history', ['none']))}\n"
+            f"- Medications: {', '.join(profile.get('medications', ['none']))}\n\n"
+            f"List the top 3-5 possible conditions that match these symptoms, with approximate probability ranges "
+            f"(Low: 5-25%, Medium: 25-50%, High: 50-75%, Very High: 75%+).\n\n"
+            f"Format as JSON array:\n"
+            f"[\n"
+            f"  {{\n"
+            f"    \"condition\": \"Condition name\",\n"
+            f"    \"probability_range\": \"Low/Medium/High/Very High\",\n"
+            f"    \"key_matching_symptoms\": [\"symptom1\", \"symptom2\"],\n"
+            f"    \"recommended_tests\": [\"test1\", \"test2\"]\n"
+            f"  }},\n"
+            f"  ...\n"
+            f"]\n\n"
+            f"Provide ONLY the conditions that genuinely match the symptoms. Include a 'None' option if the symptoms are too vague."
+        )
+        
+        # Create a separate conversation for prediction to avoid contaminating the main conversation
+        prediction_conversation = [
+            {"role": "system", "content": "You are a medical prediction system that can suggest possible conditions based on symptoms and patient data. Be thorough but conservative in your predictions."},
+            {"role": "user", "content": prediction_prompt}
+        ]
+        
+        # Prepare the API request
+        data = {
+            "model": "gpt-3.5-turbo",
+            "messages": prediction_conversation,
+            "temperature": 0.3,
+            "max_tokens": 800
+        }
+        
+        try:
+            # Make the API request
+            response = requests.post(
+                self.api_url,
+                headers=self.headers,
+                json=data
+            )
+            
+            # Check for successful response
+            response.raise_for_status()
+            result = response.json()
+            
+            # Extract the response text
+            prediction_result = result["choices"][0]["message"]["content"]
+            
+            # Parse JSON from response
+            try:
+                # Find JSON content between ```json and ``` if present
+                if "```json" in prediction_result:
+                    json_content = prediction_result.split("```json")[1].split("```")[0].strip()
+                    predictions = json.loads(json_content)
+                elif "```" in prediction_result:
+                    json_content = prediction_result.split("```")[1].split("```")[0].strip()
+                    predictions = json.loads(json_content)
+                else:
+                    # Try to parse the whole thing as JSON
+                    predictions = json.loads(prediction_result)
+                    
+                # Validate predictions format
+                if not isinstance(predictions, list):
+                    raise ValueError("Prediction should be a list")
+                    
+                # Process and return predictions
+                return predictions
+                    
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"Error parsing prediction JSON: {e}")
+                return [{"condition": "Error in prediction format", "probability_range": "N/A",
+                        "key_matching_symptoms": [], "recommended_tests": []}]
+                    
+        except requests.RequestException as e:
+            print(f"Error calling prediction API: {e}")
+            return [{"condition": "Unable to generate predictions", "probability_range": "N/A",
+                    "key_matching_symptoms": [], "recommended_tests": []}]
+    
+
+
+
+
+
+def integrate_with_health_assessment(chatgpt_manager, health_assessment, storage):
+    """
+    Update a HealthAssessment object with data extracted from ChatGPT conversation
+    and include possible condition predictions
+    
+    Args:
+        chatgpt_manager: Instance of ChatGPTManager with conversation history
+        health_assessment: HealthAssessment object to update
+        storage: DataStorage instance for accessing patient data
+    """
+    from healthcare_assistant import Symptom, PriorityLevel
+    
+    # Extract medical data from conversation
+    medical_data = chatgpt_manager.extract_medical_data()
+    
+    # Calculate priority
+    priority_data = chatgpt_manager.calculate_priority_score(medical_data)
+    
+    # Update health assessment with priority information
+    health_assessment.priority_score = priority_data["priority_score"]
+    health_assessment.priority_level = PriorityLevel(priority_data["priority_level"])
+    
+    # Update recommendation based on priority level
+    if health_assessment.priority_level == PriorityLevel.CRITICAL:
+        health_assessment.recommendation = "Immediate medical attention recommended"
+    elif health_assessment.priority_level == PriorityLevel.URGENT:
+        health_assessment.recommendation = "Schedule appointment within 24-48 hours"
+    elif health_assessment.priority_level == PriorityLevel.STANDARD:
+        health_assessment.recommendation = "Schedule appointment within 1-2 weeks"
+    else:
+        health_assessment.recommendation = "Routine appointment scheduling"
+    
+    # Update patient profile if available
+    patient = None
+    if hasattr(health_assessment, 'patient_id'):
+        patient = storage.get_patient(health_assessment.patient_id)
+        if patient and 'patient_demographics' in medical_data:
+            demographics = medical_data.get('patient_demographics', {})
+            
+            # Update age if provided
+            if demographics.get('age') is not None:
+                try:
+                    patient.age = int(demographics['age'])
+                except (ValueError, TypeError):
+                    pass
+                    
+            # Update gender if provided
+            if demographics.get('gender'):
+                patient.gender = demographics['gender']
+            
+            # Update medical history
+            if medical_data.get('medical_history'):
+                for condition in medical_data['medical_history']:
+                    if condition and condition not in patient.medical_history:
+                        patient.medical_history.append(condition)
+            
+            # Update chronic conditions if field exists
+            if hasattr(patient, 'chronic_conditions') and medical_data.get('chronic_conditions'):
+                for condition in medical_data['chronic_conditions']:
+                    if condition and condition not in patient.chronic_conditions:
+                        patient.chronic_conditions.append(condition)
+            
+            # Update medications
+            if medical_data.get('medications'):
+                for med in medical_data['medications']:
+                    if isinstance(med, dict) and med.get('name'):
+                        med_str = med['name']
+                        if med.get('dosage'):
+                            med_str += f" {med['dosage']}"
+                        if med.get('frequency'):
+                            med_str += f" ({med['frequency']})"
+                        if med_str not in patient.current_medications:
+                            patient.current_medications.append(med_str)
+                    elif isinstance(med, str) and med not in patient.current_medications:
+                        patient.current_medications.append(med)
+            
+            # Update allergies
+            if medical_data.get('allergies'):
+                for allergy in medical_data['allergies']:
+                    if allergy and allergy not in patient.allergies:
+                        patient.allergies.append(allergy)
+            
+            # Update lifestyle factors
+            if medical_data.get('lifestyle_factors') and hasattr(patient, 'lifestyle_factors'):
+                lifestyle = medical_data['lifestyle_factors']
+                if lifestyle.get('smoking'):
+                    patient.lifestyle_factors['smoking_status'] = lifestyle['smoking']
+                if lifestyle.get('alcohol'):
+                    patient.lifestyle_factors['alcohol_consumption'] = lifestyle['alcohol']
+                if lifestyle.get('exercise'):
+                    patient.lifestyle_factors['exercise_frequency'] = lifestyle['exercise']
+                if lifestyle.get('diet'):
+                    patient.lifestyle_factors['diet'] = lifestyle['diet']
+                if lifestyle.get('stress'):
+                    patient.lifestyle_factors['stress_level'] = lifestyle['stress']
+                if lifestyle.get('sleep'):
+                    patient.lifestyle_factors['sleep_patterns'] = lifestyle['sleep']
+            
+            # Save updated patient
+            storage.add_patient(patient)
+    
+    # Process symptoms
+    if medical_data.get('symptom_details'):
+        symptom_details = medical_data['symptom_details']
+    else:
+        # Fall back to simple symptoms if detailed ones aren't available
+        symptom_details = []
+        for symptom_name in medical_data.get('primary_symptoms', []):
+            if isinstance(symptom_name, str) and symptom_name.strip():
+                symptom_details.append({
+                    'name': symptom_name.strip(),
+                    'severity': medical_data.get('symptom_severity', 5),
+                    'duration': medical_data.get('symptom_duration', '7 days')
+                })
+    
+    # Add each symptom to health assessment
+    for symptom_detail in symptom_details:
+        if isinstance(symptom_detail, dict) and symptom_detail.get('name'):
+            name = symptom_detail.get('name', '').strip()
+            if name:
+                # Extract severity (1-10 scale)
+                severity = 5  # Default moderate
+                if symptom_detail.get('severity') is not None:
+                    try:
+                        sev = int(symptom_detail['severity'])
+                        if 1 <= sev <= 10:
+                            severity = sev
+                    except (ValueError, TypeError):
+                        pass
+                
+                # Extract duration in days
+                duration_days = 7  # Default one week
+                if symptom_detail.get('duration'):
+                    duration_str = str(symptom_detail['duration']).lower()
+                    if 'day' in duration_str:
+                        try:
+                            days = int(''.join(filter(str.isdigit, duration_str)))
+                            duration_days = days
+                        except ValueError:
+                            pass
+                    elif 'week' in duration_str:
+                        try:
+                            weeks = int(''.join(filter(str.isdigit, duration_str)))
+                            duration_days = weeks * 7
+                        except ValueError:
+                            pass
+                    elif 'month' in duration_str:
+                        try:
+                            months = int(''.join(filter(str.isdigit, duration_str)))
+                            duration_days = months * 30
+                        except ValueError:
+                            pass
+                    elif 'year' in duration_str:
+                        try:
+                            years = int(''.join(filter(str.isdigit, duration_str)))
+                            duration_days = years * 365
+                        except ValueError:
+                            pass
+                
+                # Create description including frequency and triggers
+                description = "Reported during conversation"
+                if symptom_detail.get('frequency') or symptom_detail.get('triggers'):
+                    description_parts = []
+                    if symptom_detail.get('frequency'):
+                        description_parts.append(f"Frequency: {symptom_detail['frequency']}")
+                    if symptom_detail.get('triggers'):
+                        description_parts.append(f"Triggers: {symptom_detail['triggers']}")
+                    if description_parts:
+                        description = ". ".join(description_parts)
+                
+                # Create and add the symptom
+                symptom = Symptom(
+                    name=name,
+                    severity=severity,
+                    duration_days=duration_days,
+                    description=description
+                )
+                health_assessment.add_symptom(symptom)
+    
+    # Generate condition predictions using symptoms and patient data
+    patient_data = {
+        'symptoms': [s.to_dict() for s in health_assessment.symptoms],
+        'age': patient.age if patient else None,
+        'gender': patient.gender if patient else None,
+        'medical_history': patient.medical_history if patient else [],
+        'current_medications': patient.current_medications if patient else []
+    }
+    
+    # Get condition predictions
+    predictions = chatgpt_manager.predict_possible_conditions(patient_data)
+    
+    # Add predictions to health assessment
+    # First, we need to modify the HealthAssessment class to include predictions
+    # If the class already has this field, this code will use it
+    if not hasattr(health_assessment, 'condition_predictions'):
+        # Add the field dynamically if it doesn't exist
+        health_assessment.condition_predictions = []
+    
+    health_assessment.condition_predictions = predictions
+    
